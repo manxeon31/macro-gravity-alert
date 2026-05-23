@@ -1,0 +1,30 @@
+name: Daily Macro Gravity Alert
+
+on:
+  schedule:
+    # 3:30 PM Central during standard time = 21:30 UTC
+    # During daylight saving, this runs 4:30 PM Central.
+    - cron: "30 21 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  run-alert:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run macro alert
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python macro_alert.py

@@ -110,10 +110,13 @@ def send_telegram(message):
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
         "chat_id": chat_id,
-        "text": message,
-        "parse_mode": "Markdown"
+        "text": message
     }
     r = requests.post(url, json=payload, timeout=20)
+
+    if not r.ok:
+        print("Telegram error:", r.status_code, r.text)
+
     r.raise_for_status()
 
 def main():

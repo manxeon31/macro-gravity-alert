@@ -17,17 +17,27 @@ def get_data(symbol, period="3mo"):
         raise ValueError(f"No data for {symbol}")
     return df
 
+def get_close_series(df):
+    close = df["Close"]
+
+    # yfinance sometimes returns a DataFrame instead of Series
+    if isinstance(close, pd.DataFrame):
+        close = close.iloc[:, 0]
+
+    return close.dropna()
+
 def latest_close(df):
-    return float(df["Close"].dropna().iloc[-1])
+    close = get_close_series(df)
+    return float(close.iloc[-1])
 
 def drawdown_from_20d_high(df):
-    close = df["Close"].dropna()
+    close = get_close_series(df)
     high_20 = close.tail(20).max()
     latest = close.iloc[-1]
     return float((latest / high_20 - 1) * 100)
 
 def five_day_change(df):
-    close = df["Close"].dropna()
+    close = get_close_series(df)
     if len(close) < 6:
         return 0.0
     return float((close.iloc[-1] / close.iloc[-6] - 1) * 100)

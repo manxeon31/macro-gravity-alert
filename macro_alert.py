@@ -4,6 +4,19 @@ import requests
 import yfinance as yf
 import pandas as pd
 
+def load_state():
+    try:
+        with open(STATE_FILE, "r") as f:
+            return json.load(f)
+    except:
+        return {
+            "commodity_regime": "UNKNOWN",
+            "risk_score": 0
+        }
+
+def save_state(state):
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f)
 
 SYMBOLS = {
     "QQQ": "QQQ",
@@ -169,6 +182,8 @@ def send_telegram(message):
 def main():
     data = {}
 
+    previous_state = load_state()
+    
     for name, symbol in SYMBOLS.items():
         df = get_data(symbol)
         data[name] = {
@@ -178,9 +193,17 @@ def main():
         }
 
     score, notes = score_signals(data)
+    if regime_changed:
+    notes.append(
+        f"Commodity regime changed: {previous_regime} → {commodity_state}"
+    )
     action = action_from_score(score)
     commodity_state = commodity_regime(data)
 
+    previous_regime = previous_state.get("commodity_regime", "UNKNOWN")
+
+    regime_changed = previous_regime != commodity_state
+    
     ten_y = data["10Y"]["price"]
 
     message = f"""
@@ -216,6 +239,10 @@ def main():
 *Discipline*
 Do not chase. Deploy only on preset pullback levels.
 """
+    save_state({
+    "commodity_regime": commodity_state,
+    "risk_score": score
+    })
     send_telegram(message.strip())
 
 if __name__ == "__main__":

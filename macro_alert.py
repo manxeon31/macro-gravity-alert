@@ -1,7 +1,9 @@
 import os
+import json
 import requests
 import yfinance as yf
 import pandas as pd
+
 
 SYMBOLS = {
     "QQQ": "QQQ",

@@ -194,9 +194,9 @@ def main():
 
     score, notes = score_signals(data)
     if regime_changed:
-    notes.append(
-        f"Commodity regime changed: {previous_regime} → {commodity_state}"
-    )
+        notes.append(
+            f"Commodity regime changed: {previous_regime} → {commodity_state}"
+        )
     action = action_from_score(score)
     commodity_state = commodity_regime(data)
 

@@ -46,7 +46,7 @@ def score_signals(data):
     score = 0
     notes = []
 
-    ten_y = data["10Y"]["price"] / 10  # ^TNX quotes 10x yield
+    ten_y = data["10Y"]["price"]  # ^TNX quotes 10x yield
     dxy = data["DXY"]["price"]
     vix = data["VIX"]["price"]
     qqq_dd = data["QQQ"]["dd20"]
@@ -133,7 +133,7 @@ def main():
     score, notes = score_signals(data)
     action = action_from_score(score)
 
-    ten_y = data["10Y"]["price"] / 10
+    ten_y = data["10Y"]["price"]
 
     message = f"""
 *Macro Gravity Daily Alert*

@@ -181,6 +181,43 @@ def send_telegram(message):
 
     r.raise_for_status()
 
+def generate_interpretation(score, data, commodity_state):
+    ten_y = data["10Y"]["price"]
+    dxy = data["DXY"]["price"]
+    vix = data["VIX"]["price"]
+    qqq_dd = data["QQQ"]["dd20"]
+    nvda_dd = data["NVDA"]["dd20"]
+    slv_dd = data["SLV"]["dd20"]
+
+    lines = []
+
+    if score <= 2:
+        lines.append("Market is calm. Stay invested, but do not chase strength.")
+    elif score <= 4:
+        lines.append("Market is in caution mode. Keep cash ready and avoid chasing AI momentum.")
+    elif score <= 6:
+        lines.append("Macro pressure is building. Add only on preset pullback levels.")
+    else:
+        lines.append("Risk-off conditions are active. Preserve capital and wait for stabilization.")
+
+    if ten_y > 4.3:
+        lines.append(f"10Y yield at {ten_y:.2f}% is still high enough to pressure growth valuations.")
+
+    if nvda_dd < -8:
+        lines.append(f"NVDA is down {nvda_dd:.1f}% from its 20-day high, suggesting AI momentum is cooling short-term.")
+
+    if commodity_state == "METAL HEADWIND":
+        lines.append("Metals face macro headwind from high yields and a strong dollar. Avoid aggressive SLV buying.")
+    elif commodity_state == "METAL SUPPORTIVE":
+        lines.append("Metals backdrop is supportive. SLV/GLD setups deserve attention.")
+    elif slv_dd < -12:
+        lines.append(f"SLV is deeply pulled back at {slv_dd:.1f}% from its 20-day high. This is a tactical watch zone, not an automatic full buy.")
+
+    if vix < 20 and dxy < 103:
+        lines.append("Volatility and dollar pressure are contained, so this is not a broad panic environment.")
+
+    return "\n".join(f"- {line}" for line in lines)
+
 def main():
     data = {}
 
@@ -199,6 +236,8 @@ def main():
     action = action_from_score(score)
     commodity_state = commodity_regime(data)
 
+    interpretation = generate_interpretation(score, data, commodity_state)
+    
     previous_regime = previous_state.get("commodity_regime", "UNKNOWN")
 
     regime_changed = previous_regime != commodity_state

@@ -9,6 +9,8 @@ SYMBOLS = {
     "VIX": "^VIX",
     "10Y": "^TNX",
     "DXY": "DX-Y.NYB",
+    "GLD": "GLD",
+    "SLV": "SLV",
 }
 
 def get_data(symbol, period="3mo"):
@@ -89,12 +91,50 @@ def score_signals(data):
         score += 1
         notes.append(f"NVDA drawdown > 8% ({nvda_dd:.1f}%)")
 
+    slv_dd = data["SLV"]["dd20"]
+
+    if slv_dd < -8 and ten_y < 4.7 and dxy < 105:
+        notes.append("SLV tactical accumulation zone forming")
+    
     if ten_y_5d > 3 and qqq_5d > 0:
         score += 2
         notes.append("Danger divergence: 10Y rising while QQQ rising")
 
+    gld_5d = data["GLD"]["chg5"]
+    slv_5d = data["SLV"]["chg5"]
+    
+    # Commodity macro pressure
+    if ten_y > 4.7 and dxy > 105:
+        score += 2
+        notes.append("Macro pressure against metals: high yields + strong dollar")
+    
+    # Silver weak while dollar rising
+    if slv_5d < -3 and dxy > 105:
+        score += 1
+        notes.append("Silver weakening under dollar pressure")
+    
+    # Gold defensive bid
+    if gld_5d > 2 and vix > 20:
+        notes.append("Gold acting as defensive hedge")
+        
     return min(score, 10), notes
+    
+def commodity_regime(data):
+    ten_y = data["10Y"]["price"]
+    dxy = data["DXY"]["price"]
+    vix = data["VIX"]["price"]
 
+    if ten_y > 4.7 and dxy > 105:
+        return "METAL HEADWIND"
+
+    if ten_y < 4.4 and dxy < 103:
+        return "METAL SUPPORTIVE"
+
+    if vix > 25:
+        return "VOLATILE / DEFENSIVE"
+
+    return "NEUTRAL"
+    
 def action_from_score(score):
     if score <= 2:
         return "NORMAL: stay invested, no chase."
@@ -135,6 +175,7 @@ def main():
 
     score, notes = score_signals(data)
     action = action_from_score(score)
+    commodity_state = commodity_regime(data)
 
     ten_y = data["10Y"]["price"]
 
@@ -143,6 +184,7 @@ def main():
 
 *Risk Score:* {score}/10
 *Action:* {action}
+*Commodity Regime:* {commodity_state}
 
 *Key Levels*
 - 10Y: {ten_y:.2f}%
@@ -151,10 +193,17 @@ def main():
 - QQQ 20D drawdown: {data["QQQ"]["dd20"]:.1f}%
 - NVDA 20D drawdown: {data["NVDA"]["dd20"]:.1f}%
 
+*Commodity Regime*
+- GLD 5D: {data["GLD"]["chg5"]:.1f}%
+- SLV 5D: {data["SLV"]["chg5"]:.1f}%
+
 *5D Moves*
 - 10Y: {data["10Y"]["chg5"]:.1f}%
 - QQQ: {data["QQQ"]["chg5"]:.1f}%
 - NVDA: {data["NVDA"]["chg5"]:.1f}%
+
+
+
 
 *Triggered Signals*
 {chr(10).join(["- " + n for n in notes]) if notes else "- None"}

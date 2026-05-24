@@ -4,6 +4,8 @@ import requests
 import yfinance as yf
 import pandas as pd
 
+STATE_FILE = "state.json"
+
 def load_state():
     try:
         with open(STATE_FILE, "r") as f:

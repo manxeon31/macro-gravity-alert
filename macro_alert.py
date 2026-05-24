@@ -193,17 +193,18 @@ def main():
         }
 
     score, notes = score_signals(data)
-    if regime_changed:
-        notes.append(
-            f"Commodity regime changed: {previous_regime} → {commodity_state}"
-        )
+
     action = action_from_score(score)
     commodity_state = commodity_regime(data)
 
     previous_regime = previous_state.get("commodity_regime", "UNKNOWN")
 
     regime_changed = previous_regime != commodity_state
-    
+
+    if regime_changed:
+        notes.append(
+            f"Commodity regime changed: {previous_regime} → {commodity_state}"
+        )
     ten_y = data["10Y"]["price"]
 
     message = f"""

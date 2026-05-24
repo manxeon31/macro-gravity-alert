@@ -93,8 +93,10 @@ def score_signals(data):
 
     slv_dd = data["SLV"]["dd20"]
 
-    if slv_dd < -8 and ten_y < 4.7 and dxy < 105:
-        notes.append("SLV tactical accumulation zone forming")
+    if slv_dd < -12 and ten_y < 4.7 and dxy < 105:
+        notes.append(f"SLV deep tactical zone forming: 20D drawdown {slv_dd:.1f}%")
+    elif slv_dd < -8 and ten_y < 4.7 and dxy < 105:
+        notes.append(f"SLV watch zone only: 20D drawdown {slv_dd:.1f}%")
     
     if ten_y_5d > 3 and qqq_5d > 0:
         score += 2
@@ -192,6 +194,7 @@ def main():
 - VIX: {data["VIX"]["price"]:.2f}
 - QQQ 20D drawdown: {data["QQQ"]["dd20"]:.1f}%
 - NVDA 20D drawdown: {data["NVDA"]["dd20"]:.1f}%
+- SLV 20D drawdown: {data["SLV"]["dd20"]:.1f}%
 
 *Commodity Regime*
 - GLD 5D: {data["GLD"]["chg5"]:.1f}%

@@ -54,12 +54,15 @@ def score_signals(data):
     ten_y_5d = data["10Y"]["chg5"]
     qqq_5d = data["QQQ"]["chg5"]
 
-    if ten_y > 4.7:
-        score += 2
-        notes.append(f"10Y > 4.7% ({ten_y:.2f}%)")
     if ten_y > 5.0:
-        score += 1
+        score += 3
         notes.append(f"10Y > 5.0% danger zone ({ten_y:.2f}%)")
+    elif ten_y > 4.7:
+        score += 2
+        notes.append(f"10Y > 4.7% valuation pressure ({ten_y:.2f}%)")
+    elif ten_y > 4.3:
+        score += 2
+        notes.append(f"10Y > 4.3% caution zone ({ten_y:.2f}%)")
 
     if dxy > 106:
         score += 2

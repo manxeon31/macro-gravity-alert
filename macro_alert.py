@@ -254,6 +254,8 @@ def main():
 *Risk Score:* {score}/10
 *Action:* {action}
 *Commodity Regime:* {commodity_state}
+*Interpretation*
+{interpretation}
 
 *Key Levels*
 - 10Y: {ten_y:.2f}%

@@ -254,6 +254,7 @@ def main():
 *Risk Score:* {score}/10
 *Action:* {action}
 *Commodity Regime:* {commodity_state}
+
 *Interpretation*
 {interpretation}
 
@@ -273,9 +274,6 @@ def main():
 - 10Y: {data["10Y"]["chg5"]:.1f}%
 - QQQ: {data["QQQ"]["chg5"]:.1f}%
 - NVDA: {data["NVDA"]["chg5"]:.1f}%
-
-
-
 
 *Triggered Signals*
 {chr(10).join(["- " + n for n in notes]) if notes else "- None"}

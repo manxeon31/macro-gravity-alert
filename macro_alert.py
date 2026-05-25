@@ -207,6 +207,7 @@ def clean_interpretation_text(text):
 
 def generate_gemini_interpretation(score, data, commodity_state, notes, action):
     api_key = os.getenv("GEMINI_API_KEY")
+
     if not api_key:
         return generate_rule_based_interpretation(score, data, commodity_state)
 
@@ -233,48 +234,6 @@ def generate_gemini_interpretation(score, data, commodity_state, notes, action):
     }
 
     prompt = f"""
-Write a concise market interpretation for this Telegram alert.
-
-Hard rules:
-- Output exactly 3 bullet points.
-- Each bullet starts with "- ".
-- Each bullet must be one complete sentence ending with a period.
-- No bold text.
-- No Markdown formatting except plain bullets.
-- No tables.
-- No incomplete sentences.
-- No financial advice certainty.
-- Cover 10Y yield, AI stocks, metals/SLV, and discipline.
-- Keep total output under 75 words.
-
-Market snapshot:
-{json.dumps(market_snapshot, indent=2)}
-"""
-
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.1,
-                max_output_tokens=800,
-            ),
-        )
-
-        text = (response.text or "").strip()
-
-        # Guardrail: reject broken / clipped output
-        if len(text) < 80 or text.count("- ") < 3 or not text.endswith("."):
-            print("Gemini output too short, using fallback:", text)
-            return generate_rule_based_interpretation(score, data, commodity_state)
-
-        return text
-
-    except Exception as e:
-        print("Gemini error:", str(e))
-        return generate_rule_based_interpretation(score, data, commodity_state)
-
-    prompt = f"""
     Return ONLY valid JSON.
     
     Schema:
@@ -294,59 +253,53 @@ Market snapshot:
     Market snapshot:
     {json.dumps(market_snapshot, indent=2)}
     """
-
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.1,
-                max_output_tokens=300,
-                response_mime_type="application/json",
-            ),
-        )
-        
-        raw_text = (response.text or "").strip()
     
-    try:
-        parsed = json.loads(raw_text)
-        text = parsed.get("interpretation", "").strip()
-    except Exception:
-        print("Gemini JSON parse failed:", raw_text)
-        return generate_rule_based_interpretation(score, data, commodity_state)
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.1,
+                    max_output_tokens=300,
+                    response_mime_type="application/json",
+                ),
+            )
     
-    if len(text) < 45 or not text.endswith("."):
-        print("Gemini interpretation failed validation:", text)
-        return generate_rule_based_interpretation(score, data, commodity_state)
+            raw_text = (response.text or "").strip()
     
-    print("Interpretation source: GEMINI_JSON")
-    return text
-
-    except Exception as e:
-        print(f"""
-        === INTERPRETATION DEBUG ===
-        Source: FALLBACK
-        Reason: Gemini exception
-        Exception:
-        {str(e)}
-        ============================
-        """)
-        return generate_rule_based_interpretation(score, data, commodity_state)
-
-def clean_interpretation_text(text):
-    if not text:
-        return ""
-
-    text = text.strip()
-
-    # Remove Gemini markdown bolding if it sneaks in
-    text = text.replace("**", "")
-    text = text.replace("* ", "- ")
-
-    # Remove accidental double blank lines
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-
-    return "\n".join(lines)
+            parsed = json.loads(raw_text)
+    
+            text = parsed.get("interpretation", "").strip()
+    
+            if len(text) < 45 or not text.endswith("."):
+                print("Gemini interpretation failed validation:", text)
+    
+                return generate_rule_based_interpretation(
+                    score,
+                    data,
+                    commodity_state
+                )
+    
+            print("Interpretation source: GEMINI_JSON")
+    
+            return text
+    
+        except Exception as e:
+    
+            print(f"""
+    === INTERPRETATION DEBUG ===
+    Source: FALLBACK
+    Reason: Gemini exception
+    Exception:
+    {str(e)}
+    ============================
+    """)
+    
+            return generate_rule_based_interpretation(
+                score,
+                data,
+                commodity_state
+            )
 
 def generate_rule_based_interpretation(score, data, commodity_state):
     ten_y = data["10Y"]["price"]

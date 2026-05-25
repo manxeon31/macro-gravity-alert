@@ -251,7 +251,7 @@ def generate_llm_interpretation(score, data, commodity_state, notes, action):
     {json.dumps(market_snapshot, indent=2)}
     """
 
-        try:
+    try:
         response = client.chat.completions.create(
             model="openrouter/free",
             messages=[

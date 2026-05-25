@@ -296,17 +296,17 @@ Market snapshot:
     """
 
     try:
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.1,
-            max_output_tokens=300,
-            response_mime_type="application/json",
-        ),
-    )
-    
-    raw_text = (response.text or "").strip()
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.1,
+                max_output_tokens=300,
+                response_mime_type="application/json",
+            ),
+        )
+        
+        raw_text = (response.text or "").strip()
     
     try:
         parsed = json.loads(raw_text)

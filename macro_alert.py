@@ -236,15 +236,16 @@ def generate_gemini_interpretation(score, data, commodity_state, notes, action):
 Write a concise market interpretation for this Telegram alert.
 
 Hard rules:
-- Output exactly 4 bullet points.
+- Output exactly 3 bullet points.
 - Each bullet starts with "- ".
+- Each bullet must be one complete sentence ending with a period.
 - No bold text.
 - No Markdown formatting except plain bullets.
 - No tables.
 - No incomplete sentences.
 - No financial advice certainty.
-- Mention AI stocks, 10Y yield, SLV/metals, and discipline.
-- Keep total output under 120 words.
+- Cover 10Y yield, AI stocks, metals/SLV, and discipline.
+- Keep total output under 75 words.
 
 Market snapshot:
 {json.dumps(market_snapshot, indent=2)}
@@ -263,7 +264,7 @@ Market snapshot:
         text = (response.text or "").strip()
 
         # Guardrail: reject broken / clipped output
-        if len(text) < 120 or text.count("- ") < 3:
+        if len(text) < 80 or text.count("- ") < 3 or not text.endswith("."):
             print("Gemini output too short, using fallback:", text)
             return generate_rule_based_interpretation(score, data, commodity_state)
 

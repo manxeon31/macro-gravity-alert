@@ -237,29 +237,23 @@ def generate_llm_interpretation(score, data, commodity_state, notes, action):
     }
 
     prompt = f"""
-Return ONLY valid JSON.
-
-Schema:
-{{
-  "interpretation": "string"
-}}
-
-Rules for interpretation:
-- One paragraph only.
-- 45 to 70 words.
-- Complete sentences only.
-- No bullets.
-- No markdown.
-- Mention 10Y yield, AI stocks, SLV/metals, and discipline.
-- End with a period.
-
-Market snapshot:
-{json.dumps(market_snapshot, indent=2)}
-"""
+    Write one concise market interpretation paragraph.
+    
+    Rules:
+    - 45 to 70 words.
+    - Complete sentences only.
+    - No bullets.
+    - No markdown.
+    - Mention 10Y yield, AI stocks, SLV/metals, and discipline.
+    - End with a period.
+    
+    Market snapshot:
+    {json.dumps(market_snapshot, indent=2)}
+    """
 
     try:
         response = client.chat.completions.create(
-            model="deepseek/deepseek-chat-v3-0324:free",
+            model="openrouter/free",
             messages=[
                 {
                     "role": "user",
@@ -277,10 +271,8 @@ Market snapshot:
             print("OpenRouter returned empty content")
             print("Full response:", response)
             return generate_rule_based_interpretation(score, data, commodity_state)
-        
-        raw_text = raw_text.strip()
-        parsed = json.loads(raw_text)
-        text = parsed.get("interpretation", "").strip()
+ 
+        text = raw_text.strip()
 
         if len(text) < 45 or not text.endswith("."):
             print("OpenRouter interpretation failed validation:", text)

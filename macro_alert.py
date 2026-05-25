@@ -253,7 +253,7 @@ def generate_llm_interpretation(score, data, commodity_state, notes, action):
 
     try:
         response = client.chat.completions.create(
-            model="openrouter/free",
+                        model="openrouter/free",
             messages=[
                 {
                     "role": "user",
@@ -264,6 +264,8 @@ def generate_llm_interpretation(score, data, commodity_state, notes, action):
             max_tokens=160,
         )
 
+        actual_model = response.model
+        
         message = response.choices[0].message
         raw_text = message.content if message and message.content else ""
         
@@ -276,10 +278,13 @@ def generate_llm_interpretation(score, data, commodity_state, notes, action):
 
         if len(text) < 45 or not text.endswith("."):
             print("OpenRouter interpretation failed validation:", text)
-            return generate_rule_based_interpretation(score, data, commodity_state)
+            return (
+                generate_rule_based_interpretation(score, data, commodity_state),
+                "RULE_BASED"
+            )
 
         print("Interpretation source: OPENROUTER")
-        return text
+        return text, actual_model
 
     except Exception as e:
         print(f"""
@@ -348,7 +353,7 @@ def main():
     action = action_from_score(score)
     commodity_state = commodity_regime(data)
 
-    interpretation = generate_llm_interpretation(
+    interpretation, llm_model = generate_llm_interpretation(
         score=score,
         data=data,
         commodity_state=commodity_state,
@@ -375,6 +380,10 @@ def main():
 
 *Interpretation*
 {interpretation if interpretation else generate_rule_based_interpretation(score, data, commodity_state)}
+
+*LLM Source*
+- {llm_model}
+
 
 *Key Levels*
 - 10Y: {ten_y:.2f}%

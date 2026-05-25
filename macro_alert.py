@@ -254,7 +254,7 @@ def generate_gemini_interpretation(score, data, commodity_state, notes, action):
     {json.dumps(market_snapshot, indent=2)}
     """
     
-        try:
+    try:
             response = client.models.generate_content(
                 model="gemini-2.0-flash",
                 contents=prompt,

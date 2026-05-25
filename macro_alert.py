@@ -184,6 +184,27 @@ def send_telegram(message):
 
     r.raise_for_status()
 
+def clean_interpretation_text(text):
+    if not text:
+        return ""
+
+    text = text.strip()
+
+    # Remove Gemini markdown bolding
+    text = text.replace("**", "")
+
+    # Convert Gemini bullets to Telegram-safe bullets
+    text = text.replace("* ", "- ")
+
+    # Remove blank lines
+    lines = [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip()
+    ]
+
+    return "\n".join(lines)
+
 def generate_gemini_interpretation(score, data, commodity_state, notes, action):
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -273,21 +294,50 @@ Market snapshot:
             model="gemini-3.5-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
-                temperature=0.2,
-                max_output_tokens=350,
+                temperature=0.1,
+                max_output_tokens=800,
             ),
         )
-
-        text = response.text.strip()
-
-        if not text:
-            return generate_rule_based_interpretation(score, data, commodity_state)
-
+        
+        text = (response.text or "").strip()
+        
+        # CLEANUP STEP
+        text = clean_interpretation_text(text)
+        
+        # VALIDATION STEP
+        if (
+            len(text) < 120
+            or text.count("- ") < 3
+            or not text.endswith(".")
+        ):
+            print("Gemini output failed validation, using fallback:", text)
+        
+            return generate_rule_based_interpretation(
+                score,
+                data,
+                commodity_state
+            )
+        
         return text
 
     except Exception as e:
         print("Gemini error:", str(e))
         return generate_rule_based_interpretation(score, data, commodity_state)
+
+def clean_interpretation_text(text):
+    if not text:
+        return ""
+
+    text = text.strip()
+
+    # Remove Gemini markdown bolding if it sneaks in
+    text = text.replace("**", "")
+    text = text.replace("* ", "- ")
+
+    # Remove accidental double blank lines
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+
+    return "\n".join(lines)
 
 def generate_rule_based_interpretation(score, data, commodity_state):
     ten_y = data["10Y"]["price"]

@@ -1,3 +1,6 @@
+from google import genai
+from google.genai import types
+
 import os
 import json
 import requests
@@ -181,7 +184,72 @@ def send_telegram(message):
 
     r.raise_for_status()
 
-def generate_interpretation(score, data, commodity_state):
+def generate_gemini_interpretation(score, data, commodity_state, notes, action):
+    api_key = os.getenv("GEMINI_API_KEY")
+
+    if not api_key:
+        return generate_rule_based_interpretation(score, data, commodity_state)
+
+    client = genai.Client(api_key=api_key)
+
+    market_snapshot = {
+        "risk_score": score,
+        "action": action,
+        "commodity_regime": commodity_state,
+        "key_levels": {
+            "10Y": round(data["10Y"]["price"], 2),
+            "DXY": round(data["DXY"]["price"], 2),
+            "VIX": round(data["VIX"]["price"], 2),
+            "QQQ_20D_drawdown": round(data["QQQ"]["dd20"], 1),
+            "NVDA_20D_drawdown": round(data["NVDA"]["dd20"], 1),
+            "SLV_20D_drawdown": round(data["SLV"]["dd20"], 1),
+            "GLD_5D_change": round(data["GLD"]["chg5"], 1),
+            "SLV_5D_change": round(data["SLV"]["chg5"], 1),
+            "QQQ_5D_change": round(data["QQQ"]["chg5"], 1),
+            "NVDA_5D_change": round(data["NVDA"]["chg5"], 1),
+            "10Y_5D_change": round(data["10Y"]["chg5"], 1),
+        },
+        "triggered_signals": notes,
+    }
+
+    prompt = f"""
+You are writing a concise investment risk interpretation for a personal macro alert.
+
+Rules:
+- Do not give personalized financial advice.
+- Do not predict with certainty.
+- Be blunt, practical, and disciplined.
+- Keep it to 4-6 bullet points.
+- Focus on: AI stock risk, macro pressure, commodities, and action discipline.
+- Mention what would change the view.
+- No hype. No vague filler.
+
+Market snapshot:
+{json.dumps(market_snapshot, indent=2)}
+"""
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-3.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+                max_output_tokens=350,
+            ),
+        )
+
+        text = response.text.strip()
+
+        if not text:
+            return generate_rule_based_interpretation(score, data, commodity_state)
+
+        return text
+
+    except Exception as e:
+        print("Gemini error:", str(e))
+        return generate_rule_based_interpretation(score, data, commodity_state)
+
+def generate_rule_based_interpretation(score, data, commodity_state):
     ten_y = data["10Y"]["price"]
     dxy = data["DXY"]["price"]
     vix = data["VIX"]["price"]
@@ -236,8 +304,14 @@ def main():
     action = action_from_score(score)
     commodity_state = commodity_regime(data)
 
-    interpretation = generate_interpretation(score, data, commodity_state)
-    
+    interpretation = generate_gemini_interpretation(
+        score=score,
+        data=data,
+        commodity_state=commodity_state,
+        notes=notes,
+        action=action
+    )
+        
     previous_regime = previous_state.get("commodity_regime", "UNKNOWN")
 
     regime_changed = previous_regime != commodity_state

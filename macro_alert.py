@@ -251,9 +251,9 @@ def generate_llm_interpretation(score, data, commodity_state, notes, action):
     {json.dumps(market_snapshot, indent=2)}
     """
 
-    try:
+        try:
         response = client.chat.completions.create(
-                        model="openrouter/free",
+            model="openrouter/free",
             messages=[
                 {
                     "role": "user",
@@ -264,36 +264,47 @@ def generate_llm_interpretation(score, data, commodity_state, notes, action):
             max_tokens=500,
         )
 
-        actual_model = response.model
-        
-    message = response.choices[0].message
-    actual_model = getattr(response, "model", "openrouter/free")
-    
-    raw_text = message.content if message and message.content else ""
-    
-    if not raw_text:
-        print("OpenRouter returned empty content")
-        print("Finish reason:", response.choices[0].finish_reason)
-        print("OpenRouter model used:", actual_model)
-    
-        return (
-            generate_rule_based_interpretation(score, data, commodity_state),
-            "RULE_BASED"
-        )
-             
+        actual_model = getattr(response, "model", "openrouter/free")
+
+        message = response.choices[0].message
+
+        raw_text = message.content if message and message.content else ""
+
+        if not raw_text:
+            print("OpenRouter returned empty content")
+            print("Finish reason:", response.choices[0].finish_reason)
+            print("OpenRouter model used:", actual_model)
+
+            return (
+                generate_rule_based_interpretation(
+                    score,
+                    data,
+                    commodity_state
+                ),
+                "RULE_BASED"
+            )
+
         text = raw_text.strip()
 
         if len(text) < 45 or not text.endswith("."):
             print("OpenRouter interpretation failed validation:", text)
+
             return (
-                generate_rule_based_interpretation(score, data, commodity_state),
+                generate_rule_based_interpretation(
+                    score,
+                    data,
+                    commodity_state
+                ),
                 "RULE_BASED"
             )
 
         print("Interpretation source: OPENROUTER")
+        print("OpenRouter model used:", actual_model)
+
         return text, actual_model
 
     except Exception as e:
+
         print(f"""
 === INTERPRETATION DEBUG ===
 Source: FALLBACK
@@ -302,8 +313,15 @@ Exception:
 {str(e)}
 ============================
 """)
-        return generate_rule_based_interpretation(score, data, commodity_state)
 
+        return (
+            generate_rule_based_interpretation(
+                score,
+                data,
+                commodity_state
+            ),
+            "RULE_BASED"
+        )
 
 def generate_rule_based_interpretation(score, data, commodity_state):
     ten_y = data["10Y"]["price"]

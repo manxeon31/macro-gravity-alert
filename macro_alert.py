@@ -1,5 +1,4 @@
-from google import genai
-from google.genai import types
+from openai import OpenAI
 
 import os
 import json
@@ -205,13 +204,17 @@ def clean_interpretation_text(text):
 
     return "\n".join(lines)
 
-def generate_gemini_interpretation(score, data, commodity_state, notes, action):
-    api_key = os.getenv("GEMINI_API_KEY")
+def generate_llm_interpretation(score, data, commodity_state, notes, action):
+    api_key = os.getenv("OPENROUTER_API_KEY")
 
     if not api_key:
+        print("Interpretation source: FALLBACK, no OpenRouter key")
         return generate_rule_based_interpretation(score, data, commodity_state)
 
-    client = genai.Client(api_key=api_key)
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://openrouter.ai/api/v1",
+    )
 
     market_snapshot = {
         "risk_score": score,
@@ -234,72 +237,62 @@ def generate_gemini_interpretation(score, data, commodity_state, notes, action):
     }
 
     prompt = f"""
-    Return ONLY valid JSON.
-    
-    Schema:
-    {{
-      "interpretation": "string"
-    }}
-    
-    Rules for interpretation:
-    - One paragraph only.
-    - 45 to 70 words.
-    - Complete sentences only.
-    - No bullets.
-    - No markdown.
-    - Mention 10Y yield, AI stocks, SLV/metals, and discipline.
-    - End with a period.
-    
-    Market snapshot:
-    {json.dumps(market_snapshot, indent=2)}
-    """
-    
+Return ONLY valid JSON.
+
+Schema:
+{{
+  "interpretation": "string"
+}}
+
+Rules for interpretation:
+- One paragraph only.
+- 45 to 70 words.
+- Complete sentences only.
+- No bullets.
+- No markdown.
+- Mention 10Y yield, AI stocks, SLV/metals, and discipline.
+- End with a period.
+
+Market snapshot:
+{json.dumps(market_snapshot, indent=2)}
+"""
+
     try:
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.1,
-                max_output_tokens=300,
-                response_mime_type="application/json",
-            ),
+        response = client.chat.completions.create(
+            model="openrouter/free",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            temperature=0.1,
+            max_tokens=160,
         )
 
-        raw_text = (response.text or "").strip()
-
+        raw_text = response.choices[0].message.content.strip()
         parsed = json.loads(raw_text)
-
         text = parsed.get("interpretation", "").strip()
 
         if len(text) < 45 or not text.endswith("."):
-            print("Gemini interpretation failed validation:", text)
+            print("OpenRouter interpretation failed validation:", text)
+            return generate_rule_based_interpretation(score, data, commodity_state)
 
-            return generate_rule_based_interpretation(
-                score,
-                data,
-                commodity_state
-            )
-
-        print("Interpretation source: GEMINI_JSON")
-
+        print("Interpretation source: OPENROUTER")
         return text
 
     except Exception as e:
-
         print(f"""
 === INTERPRETATION DEBUG ===
 Source: FALLBACK
-Reason: Gemini exception
+Reason: OpenRouter exception
 Exception:
 {str(e)}
 ============================
 """)
+        return generate_rule_based_interpretation(score, data, commodity_state)
 
-        return generate_rule_based_interpretation(
-            score,
-            data,
-            commodity_state
-        )
+
 def generate_rule_based_interpretation(score, data, commodity_state):
     ten_y = data["10Y"]["price"]
     dxy = data["DXY"]["price"]
@@ -355,7 +348,7 @@ def main():
     action = action_from_score(score)
     commodity_state = commodity_regime(data)
 
-    interpretation = generate_gemini_interpretation(
+    interpretation = generate_llm_interpretation(
         score=score,
         data=data,
         commodity_state=commodity_state,

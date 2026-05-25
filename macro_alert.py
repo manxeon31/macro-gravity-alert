@@ -255,52 +255,51 @@ def generate_gemini_interpretation(score, data, commodity_state, notes, action):
     """
     
     try:
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.1,
-                    max_output_tokens=300,
-                    response_mime_type="application/json",
-                ),
-            )
-    
-            raw_text = (response.text or "").strip()
-    
-            parsed = json.loads(raw_text)
-    
-            text = parsed.get("interpretation", "").strip()
-    
-            if len(text) < 45 or not text.endswith("."):
-                print("Gemini interpretation failed validation:", text)
-    
-                return generate_rule_based_interpretation(
-                    score,
-                    data,
-                    commodity_state
-                )
-    
-            print("Interpretation source: GEMINI_JSON")
-    
-            return text
-    
-        except Exception as e:
-    
-            print(f"""
-    === INTERPRETATION DEBUG ===
-    Source: FALLBACK
-    Reason: Gemini exception
-    Exception:
-    {str(e)}
-    ============================
-    """)
-    
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.1,
+                max_output_tokens=300,
+                response_mime_type="application/json",
+            ),
+        )
+
+        raw_text = (response.text or "").strip()
+
+        parsed = json.loads(raw_text)
+
+        text = parsed.get("interpretation", "").strip()
+
+        if len(text) < 45 or not text.endswith("."):
+            print("Gemini interpretation failed validation:", text)
+
             return generate_rule_based_interpretation(
                 score,
                 data,
                 commodity_state
             )
 
+        print("Interpretation source: GEMINI_JSON")
+
+        return text
+
+    except Exception as e:
+
+        print(f"""
+=== INTERPRETATION DEBUG ===
+Source: FALLBACK
+Reason: Gemini exception
+Exception:
+{str(e)}
+============================
+""")
+
+        return generate_rule_based_interpretation(
+            score,
+            data,
+            commodity_state
+        )
 def generate_rule_based_interpretation(score, data, commodity_state):
     ten_y = data["10Y"]["price"]
     dxy = data["DXY"]["price"]

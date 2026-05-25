@@ -307,7 +307,7 @@ Market snapshot:
         text = clean_interpretation_text(text)
         
         # VALIDATION STEP
-        if len(text) < 50 or not text.endswith("."):
+        if len(text) < 80 or not text.endswith("."):
             print("Gemini output failed validation, using fallback:", text)
         
             return generate_rule_based_interpretation(
@@ -315,11 +315,28 @@ Market snapshot:
                 data,
                 commodity_state
             )
+
+        print(f"""
+        === INTERPRETATION DEBUG ===
+        Source: GEMINI
+        Length: {len(text)}
+        Bullet Count: {text.count("- ")}
+        Output:
+        {text}
+        ============================
+        """)
         
         return text
 
     except Exception as e:
-        print("Gemini error:", str(e))
+        print(f"""
+        === INTERPRETATION DEBUG ===
+        Source: FALLBACK
+        Reason: Gemini exception
+        Exception:
+        {str(e)}
+        ============================
+        """)
         return generate_rule_based_interpretation(score, data, commodity_state)
 
 def clean_interpretation_text(text):

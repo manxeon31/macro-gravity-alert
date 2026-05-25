@@ -253,7 +253,7 @@ Market snapshot:
 
     try:
         response = client.models.generate_content(
-            model="gemini-3.5-flash",
+            model="gemini-2.0-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.1,
@@ -275,16 +275,20 @@ Market snapshot:
         return generate_rule_based_interpretation(score, data, commodity_state)
 
     prompt = f"""
-    Write a concise Telegram market interpretation.
+    Return ONLY valid JSON.
     
-    Rules:
-    - Output exactly ONE paragraph.
-    - Maximum 60 words.
-    - No bullet points.
+    Schema:
+    {{
+      "interpretation": "string"
+    }}
+    
+    Rules for interpretation:
+    - One paragraph only.
+    - 45 to 70 words.
+    - Complete sentences only.
+    - No bullets.
     - No markdown.
-    - No bold text.
-    - No incomplete sentences.
-    - Mention AI stocks, 10Y yield, metals, and discipline.
+    - Mention 10Y yield, AI stocks, SLV/metals, and discipline.
     - End with a period.
     
     Market snapshot:
@@ -292,41 +296,31 @@ Market snapshot:
     """
 
     try:
-        response = client.models.generate_content(
-            model="gemini-3.5-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.1,
-                max_output_tokens=800,
-            ),
-        )
-        
-        text = (response.text or "").strip()
-        
-        # CLEANUP STEP
-        text = clean_interpretation_text(text)
-        
-        # VALIDATION STEP
-        if len(text) < 80 or not text.endswith("."):
-            print("Gemini output failed validation, using fallback:", text)
-        
-            return generate_rule_based_interpretation(
-                score,
-                data,
-                commodity_state
-            )
-
-        print(f"""
-        === INTERPRETATION DEBUG ===
-        Source: GEMINI
-        Length: {len(text)}
-        Bullet Count: {text.count("- ")}
-        Output:
-        {text}
-        ============================
-        """)
-        
-        return text
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            temperature=0.1,
+            max_output_tokens=300,
+            response_mime_type="application/json",
+        ),
+    )
+    
+    raw_text = (response.text or "").strip()
+    
+    try:
+        parsed = json.loads(raw_text)
+        text = parsed.get("interpretation", "").strip()
+    except Exception:
+        print("Gemini JSON parse failed:", raw_text)
+        return generate_rule_based_interpretation(score, data, commodity_state)
+    
+    if len(text) < 45 or not text.endswith("."):
+        print("Gemini interpretation failed validation:", text)
+        return generate_rule_based_interpretation(score, data, commodity_state)
+    
+    print("Interpretation source: GEMINI_JSON")
+    return text
 
     except Exception as e:
         print(f"""

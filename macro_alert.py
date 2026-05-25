@@ -186,7 +186,6 @@ def send_telegram(message):
 
 def generate_gemini_interpretation(score, data, commodity_state, notes, action):
     api_key = os.getenv("GEMINI_API_KEY")
-
     if not api_key:
         return generate_rule_based_interpretation(score, data, commodity_state)
 
@@ -211,6 +210,47 @@ def generate_gemini_interpretation(score, data, commodity_state, notes, action):
         },
         "triggered_signals": notes,
     }
+
+    prompt = f"""
+Write a concise market interpretation for this Telegram alert.
+
+Hard rules:
+- Output exactly 4 bullet points.
+- Each bullet starts with "- ".
+- No bold text.
+- No Markdown formatting except plain bullets.
+- No tables.
+- No incomplete sentences.
+- No financial advice certainty.
+- Mention AI stocks, 10Y yield, SLV/metals, and discipline.
+- Keep total output under 120 words.
+
+Market snapshot:
+{json.dumps(market_snapshot, indent=2)}
+"""
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-3.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.1,
+                max_output_tokens=800,
+            ),
+        )
+
+        text = (response.text or "").strip()
+
+        # Guardrail: reject broken / clipped output
+        if len(text) < 120 or text.count("- ") < 3:
+            print("Gemini output too short, using fallback:", text)
+            return generate_rule_based_interpretation(score, data, commodity_state)
+
+        return text
+
+    except Exception as e:
+        print("Gemini error:", str(e))
+        return generate_rule_based_interpretation(score, data, commodity_state)
 
     prompt = f"""
 You are writing a concise investment risk interpretation for a personal macro alert.
@@ -330,7 +370,7 @@ def main():
 *Commodity Regime:* {commodity_state}
 
 *Interpretation*
-{interpretation}
+{interpretation if interpretation else generate_rule_based_interpretation(score, data, commodity_state)}
 
 *Key Levels*
 - 10Y: {ten_y:.2f}%

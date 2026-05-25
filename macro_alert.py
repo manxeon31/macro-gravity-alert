@@ -259,7 +259,7 @@ Market snapshot:
 
     try:
         response = client.chat.completions.create(
-            model="openrouter/free",
+            model="deepseek/deepseek-chat-v3-0324:free",
             messages=[
                 {
                     "role": "user",
@@ -270,7 +270,15 @@ Market snapshot:
             max_tokens=160,
         )
 
-        raw_text = response.choices[0].message.content.strip()
+        message = response.choices[0].message
+        raw_text = message.content if message and message.content else ""
+        
+        if not raw_text:
+            print("OpenRouter returned empty content")
+            print("Full response:", response)
+            return generate_rule_based_interpretation(score, data, commodity_state)
+        
+        raw_text = raw_text.strip()
         parsed = json.loads(raw_text)
         text = parsed.get("interpretation", "").strip()
 

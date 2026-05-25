@@ -256,7 +256,7 @@ Market snapshot:
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.1,
-                max_output_tokens=300,
+                max_output_tokens=800,
             ),
         )
 
@@ -274,16 +274,19 @@ Market snapshot:
         return generate_rule_based_interpretation(score, data, commodity_state)
 
     prompt = f"""
-You are writing a concise investment risk interpretation for a personal macro alert.
+Write a concise market interpretation for this Telegram alert.
 
-Rules:
-- Do not give personalized financial advice.
-- Do not predict with certainty.
-- Be blunt, practical, and disciplined.
-- Keep it to 4-6 bullet points.
-- Focus on: AI stock risk, macro pressure, commodities, and action discipline.
-- Mention what would change the view.
-- No hype. No vague filler.
+Hard rules:
+- Output exactly 4 bullet points.
+- Each bullet starts with "- ".
+- Each bullet must be a complete sentence ending with a period.
+- No bold text.
+- No Markdown formatting except plain bullets.
+- No tables.
+- No incomplete sentences.
+- No financial advice certainty.
+- Mention AI stocks, 10Y yield, SLV/metals, and discipline.
+- Keep total output under 120 words.
 
 Market snapshot:
 {json.dumps(market_snapshot, indent=2)}

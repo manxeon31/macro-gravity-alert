@@ -261,19 +261,26 @@ def generate_llm_interpretation(score, data, commodity_state, notes, action):
                 }
             ],
             temperature=0.1,
-            max_tokens=160,
+            max_tokens=500,
         )
 
         actual_model = response.model
         
-        message = response.choices[0].message
-        raw_text = message.content if message and message.content else ""
-        
-        if not raw_text:
-            print("OpenRouter returned empty content")
-            print("Full response:", response)
-            return generate_rule_based_interpretation(score, data, commodity_state)
- 
+    message = response.choices[0].message
+    actual_model = getattr(response, "model", "openrouter/free")
+    
+    raw_text = message.content if message and message.content else ""
+    
+    if not raw_text:
+        print("OpenRouter returned empty content")
+        print("Finish reason:", response.choices[0].finish_reason)
+        print("OpenRouter model used:", actual_model)
+    
+        return (
+            generate_rule_based_interpretation(score, data, commodity_state),
+            "RULE_BASED"
+        )
+             
         text = raw_text.strip()
 
         if len(text) < 45 or not text.endswith("."):

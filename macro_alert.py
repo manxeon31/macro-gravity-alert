@@ -275,23 +275,21 @@ Market snapshot:
         return generate_rule_based_interpretation(score, data, commodity_state)
 
     prompt = f"""
-Write a concise market interpretation for this Telegram alert.
-
-Hard rules:
-- Output exactly 4 bullet points.
-- Each bullet starts with "- ".
-- Each bullet must be a complete sentence ending with a period.
-- No bold text.
-- No Markdown formatting except plain bullets.
-- No tables.
-- No incomplete sentences.
-- No financial advice certainty.
-- Mention AI stocks, 10Y yield, SLV/metals, and discipline.
-- Keep total output under 120 words.
-
-Market snapshot:
-{json.dumps(market_snapshot, indent=2)}
-"""
+    Write a concise Telegram market interpretation.
+    
+    Rules:
+    - Output exactly ONE paragraph.
+    - Maximum 60 words.
+    - No bullet points.
+    - No markdown.
+    - No bold text.
+    - No incomplete sentences.
+    - Mention AI stocks, 10Y yield, metals, and discipline.
+    - End with a period.
+    
+    Market snapshot:
+    {json.dumps(market_snapshot, indent=2)}
+    """
 
     try:
         response = client.models.generate_content(
@@ -309,11 +307,7 @@ Market snapshot:
         text = clean_interpretation_text(text)
         
         # VALIDATION STEP
-        if (
-            len(text) < 120
-            or text.count("- ") < 3
-            or not text.endswith(".")
-        ):
+        if len(text) < 50 or not text.endswith("."):
             print("Gemini output failed validation, using fallback:", text)
         
             return generate_rule_based_interpretation(
